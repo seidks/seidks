@@ -1,80 +1,216 @@
-from random import randint
+from typing import Any
+
+from flask import Flask, render_template_string, request, url_for
+
+app = Flask(__name__)
+
+# Небольшая "база данных" колледжей
+COLLEGES = [
+    {
+        "name": "Колледж информационных технологий",
+        "speciality": "Программирование",
+        "region": "Москва",
+        "form": "Очная",
+    },
+    {
+        "name": "Колледж бизнеса и сервиса",
+        "speciality": "Экономика",
+        "region": "Москва",
+        "form": "Очная",
+    },
+    {
+        "name": "Технический колледж",
+        "speciality": "Электромонтаж",
+        "region": "Московская область",
+        "form": "Очная",
+    },
+    {
+        "name": "Колледж дизайна и медиа",
+        "speciality": "Дизайн",
+        "region": "Москва",
+        "form": "Заочная",
+    },
+]
+
+template = """
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Простое Flask-приложение</title>
+</head>
+<body>
+<h1 align="center">Выбор колледжа — важный шаг в твоей карьере</h1>
+
+<nav>
+    <a href="{{ url_for('index') }}">Главная</a> |
+    <a href="{{ url_for('register') }}">Регистрация</a> |
+    <a href="{{ url_for('all_colleges') }}">Список колледжей</a>
+</nav>
+<hr>
+
+<p>Привет, будущий студент!  
+Ты уже задумываешься о том, куда поступать? Я создал этот сайт, чтобы помочь тебе быстро и легко подобрать колледж по интересующей специальности, узнать о профессии подробнее и сделать правильный выбор.</p>
+
+<h2>Что ты найдёшь на нашем сайте?</h2>
+<ul>
+    <li>Список колледжей — выбери учебное заведение по направлению, региону и форме обучения.</li>
+    <li>Описание профессий — узнай, чем занимаются специалисты, какие навыки нужны и где работают.</li>
+    <li>Полезные видео — посмотри советы от профессионалов и выпускников.</li>
+    <li>Советы и рекомендации — получи полезные идеи от тех, кто уже прошёл этот путь.</li>
+</ul>
+
+<h3>Почему стоит начать с нас?</h3>
+<ul>
+    <li>Простой и понятный интерфейс</li>
+    <li>Информация, проверенная и актуальная</li>
+    <li>Подходит для школьников 9–11 классов</li>
+</ul>
+
+<img src="https://magistr.miet.ru/data/uploads/miet-bg-compressor.jpg" height="200" width="200">
+<img src="https://static.ucheba.ru/pix/uz_photo/14132.full.webp" height="200" width="200">
+
+<h4>Заполни данные, чтобы подобрать колледж!</h4>
+<form action="/result" method="post">
+    <label for="message">Введи специальность (например: Программирование, Дизайн):</label><br>
+    <input type="text" id="message" name="message">
+    <input type="submit" value="подобрать колледж">
+</form>
+
+<img src="{{ image_url }}" width="200">
+
+{% if result_message is defined %}
+    <h2>Результаты подбора по запросу: "{{ result_message }}"</h2>
+    {% if colleges %}
+        <ul>
+        {% for c in colleges %}
+            <li>
+                <strong>{{ c.name }}</strong><br>
+                Специальность: {{ c.speciality }}<br>
+                Регион: {{ c.region }}<br>
+                Форма обучения: {{ c.form }}
+            </li>
+            <br>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>К сожалению, по такой специальности ничего не найдено. Попробуй сформулировать по-другому.</p>
+    {% endif %}
+{% endif %}
+</body>
+</html>
+"""
+
+@app.route('/')
+def index():
+    return render_template_string(
+        template,
+        image_url="https://picsum.photos/id/237/200"
+    )
+
+@app.route('/result', methods=["POST"])
+def result():
+    message = request.form.get("message", "").strip()
+    # Поиск по "базе" колледжей
+    found = []
+    if message:
+        query = message.lower()
+        for c in COLLEGES:
+            if query in c["speciality"].lower():
+                found.append(c)
+
+    return render_template_string(
+        template,
+        image_url="https://picsum.photos/id/237/200",
+        result_message=message,
+        colleges=found
+    )
+
+# ---------- СТРАНИЦА СО ВСЕМИ КОЛЛЕДЖАМИ ----------
+
+all_colleges_template = """
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Все колледжи</title>
+</head>
+<body>
+<h1>Список колледжей</h1>
+<p><a href="{{ url_for('index') }}">← На главную</a></p>
+
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Название</th>
+        <th>Специальность</th>
+        <th>Регион</th>
+        <th>Форма обучения</th>
+    </tr>
+    {% for c in colleges %}
+    <tr>
+        <td>{{ c.name }}</td>
+        <td>{{ c.speciality }}</td>
+        <td>{{ c.region }}</td>
+        <td>{{ c.form }}</td>
+    </tr>
+    {% endfor %}
+</table>
+</body>
+</html>
+"""
+
+@app.route('/colleges')
+def all_colleges():
+    return render_template_string(all_colleges_template, colleges=COLLEGES)
 
 
-class Druid:
-    def __init__(self):
-        self.hp = 150
-        self.power = 50
-        self.agility = 0
-        self.intelligence = 50
-        self.armor = 100
-        self.wisdom = 125
-        self.charisma = 0
+# ---------- ФОРМА РЕГИСТРАЦИИ ----------
 
-    def attack(self):
-        damage = random.randint(1, self.attack_power)
-        other.health -= damage
-        print(f"{self.name} атакует {other.name} и наносит {damage} урона!")    
+register_template = """
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация</title>
+</head>
+<body>
+    <h1>Форма регистрации</h1>
+    <form action="/register" method="post">
+        <label>Фамилия:<br>
+            <input type="text" name="last_name">
+        </label><br><br>
+        <label>Имя:<br>
+            <input type="text" name="first_name">
+        </label><br><br>
+        <label>Email:<br>
+            <input type="email" name="email">
+        </label><br><br>
+        <input type="submit" value="Зарегистрироваться">
+    </form>
+    <p><a href="{{ url_for('index') }}">← На главную</a></p>
+</body>
+</html>
+"""
 
-    def move(self):
-        print(f'Вы можете двинуться на {randint(1, 40)}')
+@app.route('/register', methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        last_name = request.form.get("last_name", "")
+        first_name = request.form.get("first_name", "")
+        email = request.form.get("email", "")
 
-    def wild_form_bear(self):
-        print(f"Вы превратись в медведя сила увеличена на 125, броня увеличена 180%, очки здоровья увеличены на 25%")
-        self.hp = 125
-        self.power = 225
-        self.armor = int(150 * 1.8)
+        print(f"Регистрация: {last_name} {first_name}, email: {email}")
 
-    def wild_form_back(self):
-        print(f"Вы превратились обратно в человека , все баффы пропали")
-        self.hp = 100
-        self.power = 100
-        self.armor = 150
-
-    def wooden_skin(self):
-        print(f"Ваша кожа превращается в кору дерева, телосложение увеличивается в 2 раза")
-        self.armor *= 2
-
-    def animal_language(self):
-        print(f"вы говорите животному {input()}")
-
-        
-
-    def is_alive(self):
-        return self.health > 0
-
-
-class Player(Druid):
-    def init(self, name):
-        super().init(name, health=100, attack_power=20)
-
-
-class Monster(Druid):
-    def init(self, name):
-        super().init(name, health=50, attack_power=15)
+        return f"""
+        <html><body>
+        <p>Спасибо, {first_name}! Данные получены.</p>
+        <p><a href="/register">Вернуться к форме</a></p>
+        <p><a href="/">На главную</a></p>
+        </body></html>
+        """
+    return render_template_string(register_template)
 
 
-def battle(player, monster):
-    while player.is_alive() and monster.is_alive():
-        player.attack(monster)
-        if monster.is_alive():
-            monster.attack(player)
-        print(f"Здоровье {player.name}: {player.health}, Здоровье {monster.name}: {monster.health}")
-
-    if player.is_alive():
-        print(f"{player.name} победил {monster.name}!")
-    else:
-        print(f"{monster.name} победил {player.name}...")
-
-
-def main():
-    player_name = input("Введите имя вашего персонажа: ")
-    player = Player(player_name)
-    monster = Monster("Гоблин")
-
-    print(f"{player.name} вступает в бой с {monster.name}!")
-    battle(player, monster)
-class player():    
-    def class_switch_to_druid():
-        print(f"вы выбрали персонажа Чародей")
+if __name__ == "__main__":
+    app.run(debug=True)
             
