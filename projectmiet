@@ -1,0 +1,215 @@
+from typing import Any
+
+from flask import Flask, render_template_string, request, url_for
+
+app = Flask(__name__)
+
+# Небольшая "база данных" колледжей
+COLLEGES = [
+    {
+        "name": "Колледж информационных технологий",
+        "speciality": "Программирование",
+        "region": "Москва",
+        "form": "Очная",
+    },
+    {
+        "name": "Колледж бизнеса и сервиса",
+        "speciality": "Экономика",
+        "region": "Москва",
+        "form": "Очная",
+    },
+    {
+        "name": "Технический колледж",
+        "speciality": "Электромонтаж",
+        "region": "Московская область",
+        "form": "Очная",
+    },
+    {
+        "name": "Колледж дизайна и медиа",
+        "speciality": "Дизайн",
+        "region": "Москва",
+        "form": "Заочная",
+    },
+]
+
+template = """
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Простое Flask-приложение</title>
+</head>
+<body>
+<h1 align="center">Выбор колледжа — важный шаг в твоей карьере</h1>
+
+<nav>
+    <a href="{{ url_for('index') }}">Главная</a> |
+    <a href="{{ url_for('register') }}">Регистрация</a> |
+    <a href="{{ url_for('all_colleges') }}">Список колледжей</a>
+</nav>
+<hr>
+
+<p>Привет, будущий студент!  
+Ты уже задумываешься о том, куда поступать? Я создал этот сайт, чтобы помочь тебе быстро и легко подобрать колледж по интересующей специальности, узнать о профессии подробнее и сделать правильный выбор.</p>
+
+<h2>Что ты найдёшь на нашем сайте?</h2>
+<ul>
+    <li>Список колледжей — выбери учебное заведение по направлению, региону и форме обучения.</li>
+    <li>Описание профессий — узнай, чем занимаются специалисты, какие навыки нужны и где работают.</li>
+    <li>Полезные видео — посмотри советы от профессионалов и выпускников.</li>
+    <li>Советы и рекомендации — получи полезные идеи от тех, кто уже прошёл этот путь.</li>
+</ul>
+
+<h3>Почему стоит начать с нас?</h3>
+<ul>
+    <li>Простой и понятный интерфейс</li>
+    <li>Информация, проверенная и актуальная</li>
+    <li>Подходит для школьников 9–11 классов</li>
+</ul>
+
+<img src="https://magistr.miet.ru/data/uploads/miet-bg-compressor.jpg" height="200" width="200">
+<img src="https://static.ucheba.ru/pix/uz_photo/14132.full.webp" height="200" width="200">
+
+<h4>Заполни данные, чтобы подобрать колледж!</h4>
+<form action="/result" method="post">
+    <label for="message">Введи специальность (например: Программирование, Дизайн):</label><br>
+    <input type="text" id="message" name="message">
+    <input type="submit" value="подобрать колледж">
+</form>
+
+<img src="{{ image_url }}" width="200">
+
+{% if result_message is defined %}
+    <h2>Результаты подбора по запросу: "{{ result_message }}"</h2>
+    {% if colleges %}
+        <ul>
+        {% for c in colleges %}
+            <li>
+                <strong>{{ c.name }}</strong><br>
+                Специальность: {{ c.speciality }}<br>
+                Регион: {{ c.region }}<br>
+                Форма обучения: {{ c.form }}
+            </li>
+            <br>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>К сожалению, по такой специальности ничего не найдено. Попробуй сформулировать по-другому.</p>
+    {% endif %}
+{% endif %}
+</body>
+</html>
+"""
+
+@app.route('/')
+def index():
+    return render_template_string(
+        template,
+        image_url="https://picsum.photos/id/237/200"
+    )
+
+@app.route('/result', methods=["POST"])
+def result():
+    message = request.form.get("message", "").strip()
+    # Поиск по "базе" колледжей
+    found = []
+    if message:
+        query = message.lower()
+        for c in COLLEGES:
+            if query in c["speciality"].lower():
+                found.append(c)
+
+    return render_template_string(
+        template,
+        image_url="https://picsum.photos/id/237/200",
+        result_message=message,
+        colleges=found
+    )
+
+# ---------- СТРАНИЦА СО ВСЕМИ КОЛЛЕДЖАМИ ----------
+
+all_colleges_template = """
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Все колледжи</title>
+</head>
+<body>
+<h1>Список колледжей</h1>
+<p><a href="{{ url_for('index') }}">← На главную</a></p>
+
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Название</th>
+        <th>Специальность</th>
+        <th>Регион</th>
+        <th>Форма обучения</th>
+    </tr>
+    {% for c in colleges %}
+    <tr>
+        <td>{{ c.name }}</td>
+        <td>{{ c.speciality }}</td>
+        <td>{{ c.region }}</td>
+        <td>{{ c.form }}</td>
+    </tr>
+    {% endfor %}
+</table>
+</body>
+</html>
+"""
+
+@app.route('/colleges')
+def all_colleges():
+    return render_template_string(all_colleges_template, colleges=COLLEGES)
+
+
+# ---------- ФОРМА РЕГИСТРАЦИИ ----------
+
+register_template = """
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация</title>
+</head>
+<body>
+    <h1>Форма регистрации</h1>
+    <form action="/register" method="post">
+        <label>Фамилия:<br>
+            <input type="text" name="last_name">
+        </label><br><br>
+        <label>Имя:<br>
+            <input type="text" name="first_name">
+        </label><br><br>
+        <label>Email:<br>
+            <input type="email" name="email">
+        </label><br><br>
+        <input type="submit" value="Зарегистрироваться">
+    </form>
+    <p><a href="{{ url_for('index') }}">← На главную</a></p>
+</body>
+</html>
+"""
+
+@app.route('/register', methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        last_name = request.form.get("last_name", "")
+        first_name = request.form.get("first_name", "")
+        email = request.form.get("email", "")
+
+        print(f"Регистрация: {last_name} {first_name}, email: {email}")
+
+        return f"""
+        <html><body>
+        <p>Спасибо, {first_name}! Данные получены.</p>
+        <p><a href="/register">Вернуться к форме</a></p>
+        <p><a href="/">На главную</a></p>
+        </body></html>
+        """
+    return render_template_string(register_template)
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
